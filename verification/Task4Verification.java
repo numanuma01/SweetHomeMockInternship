@@ -118,8 +118,25 @@ public class Task4Verification {
       check(plan.print(g,page(),3)==Printable.NO_SUCH_PAGE && h.getSelectedLevel()==hidden,"out-of-range page preserves selection");
       check(plan.print(g,page(),-1)==Printable.NO_SUCH_PAGE && h.getSelectedLevel()==hidden,"negative page preserves selection");
       plan.fail=true;
-      try { plan.print(g,page(),0); throw new AssertionError("Expected failure"); } catch(IllegalStateException expectedFailure) { check(h.getSelectedLevel()==hidden,"plan rendering failure restores selection"); }
-      plan.fail=false; h.setSelectedLevel(null);
+      try {
+        for(Level selected:expected) {
+          h.setSelectedLevel(selected);
+          for(int pageIndex=0;pageIndex<expected.size();pageIndex++) {
+            plan.rendered.clear();
+            try {
+              plan.print(g,page(),pageIndex);
+              throw new AssertionError("Expected rendering failure");
+            } catch(IllegalStateException expectedFailure) {
+              check(h.getSelectedLevel()==selected && plan.rendered.equals(Collections.singletonList(expected.get(pageIndex))),
+                  "render failure on " + expected.get(pageIndex).getName() + " restores selected " + selected.getName());
+            }
+          }
+        }
+      } finally {
+        plan.fail=false;
+        h.setSelectedLevel(hidden);
+      }
+      h.setSelectedLevel(null);
       check(plan.print(g,page(),1)==Printable.PAGE_EXISTS && h.getSelectedLevel()==null,"null selected level restored");
       h.setPrint(settings(false,true,1f));
       check(plan.print(g,page(),2)==Printable.PAGE_EXISTS && plan.print(g,page(),3)==Printable.NO_SUCH_PAGE,"explicit scale still yields exactly one fitted page per viewable level");
